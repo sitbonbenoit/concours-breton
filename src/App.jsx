@@ -133,30 +133,37 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const m = await load(KEYS.matches);
-      const b = await load(KEYS.bets);
-      const u = await load(KEYS.users);
-      const p = await load(KEYS.adminPw);
-      const g  = await load(KEYS.groups);
-      const bo = await load(KEYS.bonus);
-      const rd = await load(KEYS.redemptions);
-      const cr = await load(KEYS.convRate);
-      setMatches(m || WC2026_MATCHES);
-      setBets(b || {});
-      setUsers(u || {});
-      if (p) setAdminPw(p);
-      setGroups(g || {});
-      setBonus(bo || {});
-      setRedemptions(rd || {});
-      if (cr) setConvRate(cr);
+      try {
+        const data = await loadAll();
+        const matchValues = Object.values(data.matches || {});
+        setMatches(matchValues.length > 0 ? matchValues : WC2026_MATCHES);
+        setBets(data.bets || {});
+        setUsers(data.users || {});
+        if (data.config?.wc26_admin_pw) setAdminPw(data.config.wc26_admin_pw);
+        setGroups(data.groups || {});
+        setBonus(data.bonus || {});
+        setRedemptions(data.redemptions || {});
+        if (data.config?.wc26_conv_rate) setConvRate(parseInt(data.config.wc26_conv_rate) || 10);
+      } catch(e) {
+        console.error("Erreur chargement:", e);
+        setMatches(WC2026_MATCHES);
+      }
       setLoaded(true);
     })();
   }, []);
 
   const showToast = (msg, type = "ok") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
-  const persistMatches = async m => { setMatches(m); await save(KEYS.matches, m); };
+  const persistMatches = async m => {
+    setMatches(m);
+    const obj = Array.isArray(m) ? Object.fromEntries(m.map(x => [String(x.id), x])) : m;
+    await Promise.all(Object.entries(obj).map(([id, data]) => saveOne(KEYS.matches, id, data)));
+  };
   const persistBets    = async b => { setBets(b);    await save(KEYS.bets, b); };
-  const persistUsers   = async u => { setUsers(u);   await save(KEYS.users, u); };
+  const persistUsers   = async u => {
+    setUsers(u);
+    // Sauvegarder chaque utilisateur individuellement
+    await Promise.all(Object.entries(u).map(([id, data]) => saveOne(KEYS.users, id, data)));
+  };
   const persistGroups      = async g => { setGroups(g);      await save(KEYS.groups, g); };
   const persistBonus       = async b => { setBonus(b);       await save(KEYS.bonus, b); };
   const persistRedemptions = async r => { setRedemptions(r); await save(KEYS.redemptions, r); };
