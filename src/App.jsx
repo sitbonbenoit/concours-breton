@@ -1,9 +1,59 @@
 import { useState, useEffect } from "react";
 
-// ─── STORAGE HELPERS ──────────────────────────────────────────────────────────
+// ─── STORAGE HELPERS (Airtable via Netlify Function) ─────────────────────────
+const API = "/api/db";
 const KEYS = { matches: "wc26_matches", bets: "wc26_bets", users: "wc26_users", adminPw: "wc26_admin_pw", groups: "wc26_groups", bonus: "wc26_bonus", redemptions: "wc26_redemptions", convRate: "wc26_conv_rate" };
-async function load(key) { try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; } catch { return null; } }
-async function save(key, val) { try { await window.storage.set(key, JSON.stringify(val), true); } catch {} }
+
+const TABLE_MAP = {
+  wc26_users:        { table: "users",       keyField: "uid" },
+  wc26_matches:      { table: "matches",     keyField: "mid" },
+  wc26_bets:         { table: "bets",        keyField: "uid" },
+  wc26_groups:       { table: "groups",      keyField: "gid" },
+  wc26_bonus:        { table: "bonus",       keyField: "bid" },
+  wc26_redemptions:  { table: "redemptions", keyField: "rid" },
+};
+
+async function callDB(body) {
+  const res = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+async function loadAll() {
+  return callDB({ action: "loadAll" });
+}
+
+async function saveOne(key, id, data) {
+  const map = TABLE_MAP[key];
+  if (!map) return;
+  return callDB({ action: "save", table: map.table, keyField: map.keyField, keyValue: String(id), value: data });
+}
+
+async function load(key) {
+  if (key === "wc26_admin_pw" || key === "wc26_conv_rate") {
+    const data = await callDB({ action: "loadAll" });
+    return data.config?.[key] || null;
+  }
+  const map = TABLE_MAP[key];
+  if (!map) return null;
+  const data = await callDB({ action: "loadAll" });
+  return data[map.table] || null;
+}
+
+async function save(key, val) {
+  if (key === "wc26_admin_pw" || key === "wc26_conv_rate") {
+    await callDB({ action: "saveConfig", key, value: String(val) });
+    return;
+  }
+  const map = TABLE_MAP[key];
+  if (!map) return;
+  await Promise.all(Object.entries(val || {}).map(([id, data]) =>
+    callDB({ action: "save", table: map.table, keyField: map.keyField, keyValue: String(id), value: data })
+  ));
+}
 
 // ─── ALL 36 GROUP STAGE MATCHES (heure française) ─────────────────────────────
 const WC2026_MATCHES = [
