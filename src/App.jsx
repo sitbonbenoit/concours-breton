@@ -277,6 +277,41 @@ function Header({ view, setView, currentUser, setCurrentUser, adminMode, setAdmi
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
+// ─── COUNTDOWN BANNER ────────────────────────────────────────────────────────
+function CountdownBanner() {
+  const [timeLeft, setTimeLeft] = React.useState(null);
+  React.useEffect(() => {
+    const target = new Date("2026-06-11T21:00:00+02:00");
+    const calc = () => {
+      const diff = target - new Date();
+      if (diff <= 0) { setTimeLeft(null); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft({ d, h, m, s });
+    };
+    calc();
+    const t = setInterval(calc, 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!timeLeft) return null;
+  return (
+    <div style={{background:"linear-gradient(135deg,#02050C,#123284)",borderRadius:16,padding:"16px 24px",margin:"20px auto",maxWidth:420,color:"#fff",fontFamily:"'Lexend',sans-serif"}}>
+      <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.6)",marginBottom:10}}>⏱ Premier match dans</div>
+      <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+        {[{v:timeLeft.d,l:"Jours"},{v:timeLeft.h,l:"Heures"},{v:timeLeft.m,l:"Min"},{v:timeLeft.s,l:"Sec"}].map(({v,l})=>(
+          <div key={l} style={{textAlign:"center",minWidth:52,background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 4px"}}>
+            <div style={{fontSize:28,fontWeight:800,lineHeight:1}}>{String(v).padStart(2,"0")}</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:4}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:10}}>🇲🇽 Mexique vs 🇿🇦 Afrique du Sud · Jeudi 11 Juin 2026</div>
+    </div>
+  );
+}
+
 function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, adminPw, setAdminMode, showToast }) {
   const [mode,      setMode]      = useState(null);
   const [name,      setName]      = useState("");
