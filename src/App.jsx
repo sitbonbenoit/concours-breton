@@ -318,25 +318,32 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
   const [userPw,    setUserPw]    = useState("");
   const [userPw2,   setUserPw2]   = useState("");
   const [adminInput,setAdminInput]= useState("");
+  const [loading,   setLoading]   = useState(false);
   const COLORS = ["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#6366f1","#ec4899","#14b8a6","#8b5cf6","#f43f5e"];
 
   const resetForm = () => { setName(""); setUserPw(""); setUserPw2(""); setAdminInput(""); };
 
   const handleRegister = async () => {
+    if (loading) return;
     if (!name.trim())           return showToast("Entre ton prénom !", "err");
     if (!userPw.trim())         return showToast("Choisis un mot de passe !", "err");
     if (userPw !== userPw2)     return showToast("Les mots de passe ne correspondent pas !", "err");
     if (userPw.length < 4)      return showToast("Mot de passe trop court (4 caractères min) !", "err");
     if (Object.values(users).find(u => u.name.toLowerCase() === name.toLowerCase()))
       return showToast("Ce nom est déjà pris !", "err");
-    const id = name.toLowerCase().replace(/\s+/g,"_") + "_" + Date.now();
-    const color = COLORS[Object.keys(users).length % COLORS.length];
-    const nu = { ...users, [id]: { name: name.trim(), color, password: userPw } };
-    await persistUsers(nu);
-    setCurrentUser({ id, name: nu[id].name, color: nu[id].color });
-    setAdminMode(false);
-    showToast(`Bienvenue ${name.trim()} ! 🎉`);
-    setView("bet");
+    setLoading(true);
+    try {
+      const id = name.toLowerCase().replace(/\s+/g,"_") + "_" + Date.now();
+      const color = COLORS[Object.keys(users).length % COLORS.length];
+      const nu = { ...users, [id]: { name: name.trim(), color, password: userPw } };
+      await persistUsers(nu);
+      setCurrentUser({ id, name: nu[id].name, color: nu[id].color });
+      setAdminMode(false);
+      showToast(`Bienvenue ${name.trim()} ! 🎉`);
+      setView("bet");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = () => {
@@ -400,7 +407,7 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
             <input style={S.input} type="password" placeholder="Mot de passe (min. 4 caractères)" value={userPw} onChange={e=>setUserPw(e.target.value)} />
             <input style={S.input} type="password" placeholder="Confirmer le mot de passe" value={userPw2} onChange={e=>setUserPw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} />
             <p style={{fontSize:12,color:"#64748b",margin:0}}>🔒 Ton mot de passe protège l'accès à tes paris.</p>
-            <button style={S.btnPrimary} onClick={handleRegister}>Rejoindre le concours 🚀</button>
+            <button style={{...S.btnPrimary,opacity:loading?0.7:1,cursor:loading?"not-allowed":"pointer"}} onClick={handleRegister} disabled={loading}>{loading ? "⏳ Inscription en cours…" : "Rejoindre le concours 🚀"}</button>
             <button style={S.btnLink} onClick={() => setMode(null)}>Annuler</button>
           </div>
         )}
