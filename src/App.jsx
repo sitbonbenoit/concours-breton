@@ -372,8 +372,10 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
   return (
     <div style={S.page}>
       <div style={S.hero}>
+        <div style={{fontSize:32,letterSpacing:8,marginBottom:8,userSelect:"none"}}>⚽ 🇫🇷 🏆 🌍 ⚽</div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,#123284,#1e4db7)",color:"#fff",borderRadius:50,padding:"6px 20px",fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:16,fontFamily:"'Lexend',sans-serif",boxShadow:"0 4px 14px rgba(18,50,132,0.4)"}}>🌍 Coupe du Monde 2026 · Canada · Mexique · États-Unis</div>
         <img src="/logo.png" alt="Le Comptoir Breton" style={{width:150,height:150,objectFit:"contain",margin:"0 auto 16px",display:"block"}} />
-        <h1 style={S.heroTitle}>Le Concours du Comptoir 2026</h1>
+        <h1 style={S.heroTitle}>Le Concours du Comptoir</h1>
         <p style={S.heroDesc}>Les 5 premiers du classement général seront récompensés au nom de la gourmandise.<br />Soyez perspicace. Bon courage à tous.</p>
         <div style={S.ruleCards}>
           <div style={S.ruleCard}><span style={S.rulePts}>0 pt</span><span style={{fontSize:12,color:"#64748b"}}>Score faux</span></div>
