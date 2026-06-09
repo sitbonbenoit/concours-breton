@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; 
+import { useState, useEffect } from "react";
 
 // ─── STORAGE HELPERS (Airtable via Netlify Function) ─────────────────────────
 const API = "/api/db";
@@ -373,19 +373,13 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
     <div style={S.page}>
       <div style={S.hero}>
         <img src="/logo.png" alt="Le Comptoir Breton" style={{width:150,height:150,objectFit:"contain",margin:"0 auto 16px",display:"block"}} />
-        <h1 style={S.heroTitle}>Le Concours du Comptoir 2026</h1>
+        <h1 style={S.heroTitle}>Le Concours du Comptoir</h1>
         <p style={S.heroDesc}>Les 5 premiers du classement général seront récompensés au nom de la gourmandise.<br />Soyez perspicace. Bon courage à tous.</p>
         <div style={S.ruleCards}>
           <div style={S.ruleCard}><span style={S.rulePts}>0 pt</span><span style={{fontSize:12,color:"#64748b"}}>Score faux</span></div>
           <div style={S.ruleCard}><span style={S.rulePts}>1 pt</span><span style={{fontSize:12,color:"#64748b"}}>Bon vainqueur</span></div>
           <div style={{...S.ruleCard, border:"1px solid rgba(245,158,11,0.4)", background:"rgba(245,158,11,0.08)"}}><span style={{...S.rulePts,color:"#f59e0b"}}>4 pts</span><span style={{fontSize:12,color:"#f59e0b"}}>Score exact ⭐</span></div>
         </div>
-        <div style={S.statsRow}>
-          <div style={S.statBox}><span style={S.statNum}>48</span><span style={S.statLabel}>Équipes</span></div>
-          <div style={S.statBox}><span style={S.statNum}>12</span><span style={S.statLabel}>Groupes</span></div>
-          <div style={S.statBox}><span style={S.statNum}>72</span><span style={S.statLabel}>Matchs de groupes</span></div>
-        </div>
-
         {!mode && (
           <div style={S.heroButtons}>
             <button style={S.btnPrimary} onClick={() => { resetForm(); setMode("register"); }}>🆕 S'inscrire</button>
@@ -393,6 +387,12 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
             <button style={S.btnGhost} onClick={() => { resetForm(); setMode("admin"); }}>⚙️ Admin</button>
           </div>
         )}
+
+        <div style={S.statsRow}>
+          <div style={S.statBox}><span style={{fontSize:28}}>🏆</span><span style={S.statLabel}>5 premiers récompensés</span></div>
+          <div style={S.statBox}><span style={{fontSize:28}}>🥞</span><span style={S.statLabel}>Transformez vos points en gourmandise</span></div>
+          <div style={S.statBox}><span style={{fontSize:28}}>🎉</span><span style={S.statLabel}>Gagnez votre repas</span></div>
+        </div>
         {mode === "register" && (
           <div style={S.card}>
             <h3 style={S.cardTitle}>🆕 Créer un compte</h3>
@@ -484,7 +484,7 @@ function ShareButton({ currentUser, bets, matches, users }) {
     }).sort((a,b) => b.total - a.total);
     const rank = scores.findIndex(s => s.name === currentUser.name) + 1;
     const lines = [
-      "🏆 Le Concours du Comptoir 2026 — Coupe du Monde 2026",
+      "🏆 Le Concours du Comptoir — Coupe du Monde 2026",
       "",
       `👤 ${currentUser.name}`,
       `📊 ${total} pts · ${exact} score${exact>1?"s":""} exact${exact>1?"s":""}`,
@@ -502,7 +502,7 @@ function ShareButton({ currentUser, bets, matches, users }) {
     const text = buildText();
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Le Concours du Comptoir 2026", text });
+        await navigator.share({ title: "Le Concours du Comptoir", text });
       } else {
         await navigator.clipboard.writeText(text);
         setCopied(true);
@@ -520,9 +520,11 @@ function ShareButton({ currentUser, bets, matches, users }) {
 
 // ─── BET VIEW ─────────────────────────────────────────────────────────────────
 function BetView({ matches, bets, currentUser, persistBets, users, showToast }) {
-  const [draft,       setDraft]       = useState({});
-  const [filterGroup, setFilterGroup] = useState("Tous");
-  const [search,      setSearch]      = useState("");
+  const [draft,        setDraft]        = useState({});
+  const [filterGroup,  setFilterGroup]  = useState("Tous");
+  const [search,       setSearch]       = useState("");
+  const [popupMatch,   setPopupMatch]   = useState(null);
+  const [popupSearch,  setPopupSearch]  = useState("");
 
   useEffect(() => {
     const myBets = bets[currentUser.id] || {};
@@ -552,11 +554,20 @@ function BetView({ matches, bets, currentUser, persistBets, users, showToast }) 
   const myBetsCount = Object.keys(bets[currentUser.id] || {}).length;
   const openMatches = matches.filter(m => !m.finished && new Date(m.date) > new Date()).length;
 
-  const filtered = matches.filter(m => {
-    const groupOk = filterGroup === "Tous" || m.group === filterGroup;
-    const searchOk = !search || m.home.toLowerCase().includes(search.toLowerCase()) || m.away.toLowerCase().includes(search.toLowerCase());
-    return groupOk && searchOk;
-  });
+  const now2 = new Date();
+  const filtered = matches
+    .filter(m => {
+      const groupOk = filterGroup === "Tous" || m.group === filterGroup;
+      const searchOk = !search || m.home.toLowerCase().includes(search.toLowerCase()) || m.away.toLowerCase().includes(search.toLowerCase());
+      return groupOk && searchOk;
+    })
+    .sort((a, b) => {
+      const aClosed = a.finished || new Date(a.date) <= now2;
+      const bClosed = b.finished || new Date(b.date) <= now2;
+      if (aClosed && !bClosed) return 1;
+      if (!aClosed && bClosed) return -1;
+      return new Date(a.date) - new Date(b.date);
+    });
 
   return (
     <div style={S.page}>
@@ -580,6 +591,106 @@ function BetView({ matches, bets, currentUser, persistBets, users, showToast }) 
           ))}
         </div>
       </div>
+
+      {/* ── Classement du groupe sélectionné ── */}
+      {filterGroup !== "Tous" && (() => {
+        const groupMatches = matches.filter(m => m.group === filterGroup && m.finished);
+        const teams = [...new Set(matches.filter(m=>m.group===filterGroup).flatMap(m=>[m.home,m.away]))];
+        const standings = teams.map(team => {
+          let pts=0, played=0, won=0, drawn=0, lost=0, gf=0, ga=0;
+          groupMatches.forEach(m => {
+            const isHome = m.home===team, isAway = m.away===team;
+            if (!isHome && !isAway) return;
+            played++;
+            gf += isHome ? m.homeScore : m.awayScore;
+            ga += isHome ? m.awayScore : m.homeScore;
+            const diff = m.homeScore - m.awayScore;
+            if (diff===0) { pts+=1; drawn++; }
+            else if ((isHome&&diff>0)||(isAway&&diff<0)) { pts+=3; won++; }
+            else lost++;
+          });
+          return { team, pts, played, won, drawn, lost, gf, ga, diff:gf-ga };
+        }).sort((a,b)=>b.pts-a.pts||b.diff-a.diff||b.gf-a.gf);
+
+        return (
+          <div style={{background:"rgba(18,50,132,0.04)",border:"1px solid rgba(18,50,132,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13}}>
+            <div style={{fontWeight:700,color:"#123284",fontFamily:"'Lexend',sans-serif",marginBottom:8,fontSize:12,letterSpacing:1,textTransform:"uppercase"}}>📊 Classement {filterGroup}</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{color:"#888",fontSize:11}}>
+                  <th style={{textAlign:"left",padding:"2px 4px"}}>#</th>
+                  <th style={{textAlign:"left",padding:"2px 4px"}}>Équipe</th>
+                  <th style={{padding:"2px 6px"}}>J</th>
+                  <th style={{padding:"2px 6px"}}>G</th>
+                  <th style={{padding:"2px 6px"}}>N</th>
+                  <th style={{padding:"2px 6px"}}>P</th>
+                  <th style={{padding:"2px 6px"}}>Diff</th>
+                  <th style={{padding:"2px 6px",fontWeight:700,color:"#123284"}}>Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((s,i) => (
+                  <tr key={s.team} style={{borderTop:"1px solid rgba(0,0,0,0.05)",background:i<2?"rgba(18,50,132,0.04)":"transparent"}}>
+                    <td style={{padding:"4px",color:"#888",fontSize:12}}>{i+1}</td>
+                    <td style={{padding:"4px",fontWeight:i<2?700:400,fontSize:12,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.team}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12}}>{s.played}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12}}>{s.won}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12}}>{s.drawn}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12}}>{s.lost}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12,color:s.diff>0?"#1e7d4f":s.diff<0?"#c0392b":"#888"}}>{s.diff>0?"+":""}{s.diff}</td>
+                    <td style={{textAlign:"center",padding:"4px 6px",fontSize:12,fontWeight:700,color:"#123284"}}>{s.pts}</td>
+                  </tr>
+                ))}
+                {standings.length===0 && <tr><td colSpan={8} style={{textAlign:"center",color:"#888",fontSize:12,padding:8}}>Aucun match terminé dans ce groupe</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
+
+      {/* ── Popup paris des autres participants ── */}
+      {popupMatch && (() => {
+        const m = popupMatch;
+        const participants = Object.entries(users).filter(([uid]) => uid !== currentUser.id);
+        const filtered2 = participants.filter(([,u]) => !popupSearch || u.name.toLowerCase().includes(popupSearch.toLowerCase()));
+        const now3 = new Date();
+        const kicked = new Date(m.date) <= now3 || m.finished;
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>{setPopupMatch(null);setPopupSearch("");}}>
+            <div style={{background:"#fff",borderRadius:16,padding:20,maxWidth:420,width:"100%",maxHeight:"80vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <h3 style={{margin:0,fontSize:15,fontFamily:"'Lexend',sans-serif",color:"#123284"}}>{m.home} vs {m.away}</h3>
+                <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#888"}} onClick={()=>{setPopupMatch(null);setPopupSearch("");}}>✕</button>
+              </div>
+              {!kicked && <p style={{fontSize:12,color:"#f59e0b",margin:"0 0 10px",textAlign:"center"}}>⏳ Paris secrets jusqu'au coup d'envoi</p>}
+              {kicked && (
+                <>
+                  <input style={{...S.input,fontSize:13,marginBottom:10}} placeholder="🔍 Rechercher un participant…" value={popupSearch} onChange={e=>setPopupSearch(e.target.value)} />
+                  {filtered2.length === 0 && <p style={{textAlign:"center",color:"#888",fontSize:13}}>Aucun participant trouvé</p>}
+                  {filtered2.map(([uid, u]) => {
+                    const bet = bets[uid]?.[String(m.id)];
+                    const pts = bet && m.finished ? calcPoints(bet, m) : null;
+                    return (
+                      <div key={uid} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,background:"rgba(18,50,132,0.04)",marginBottom:6}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{...S.avatar,background:u.color,width:28,height:28,fontSize:13}}>{u.name[0].toUpperCase()}</div>
+                          <span style={{fontSize:13,fontWeight:600}}>{u.name}</span>
+                        </div>
+                        {bet ? (
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <span style={{fontWeight:700,fontSize:14}}>{bet.homeScore} - {bet.awayScore}</span>
+                            {pts !== null && <span style={{fontSize:11,padding:"2px 6px",borderRadius:10,background:pts===4?"#f59e0b":pts===1?"#94a3b8":"#e2e8f0",color:pts===4?"#fff":pts===1?"#fff":"#64748b",fontWeight:700}}>{pts===4?"⭐4":pts===1?"✓1":"✗0"}</span>}
+                          </div>
+                        ) : <span style={{fontSize:12,color:"#94a3b8"}}>Pas de pari</span>}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {filtered.map(match => {
         const myBet = bets[currentUser.id]?.[String(match.id)];
@@ -636,6 +747,11 @@ function BetView({ matches, bets, currentUser, persistBets, users, showToast }) 
                 <button style={S.saveBetBtn} onClick={()=>saveBet(match.id)}>{myBet?"Modifier":"Parier"}</button>
               </div>
             )}
+            <div style={{textAlign:"center",marginTop:6}}>
+              <button style={{background:"none",border:"none",fontSize:12,color:"#123284",cursor:"pointer",textDecoration:"underline",padding:"2px 0"}} onClick={()=>{setPopupMatch(match);setPopupSearch("");}}>
+                👥 Voir les paris des participants
+              </button>
+            </div>
           </div>
         );
       })}
