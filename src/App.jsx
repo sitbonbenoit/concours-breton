@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; 
+import { useState, useEffect, useRef } from "react";
 
 // ─── STORAGE HELPERS (Airtable via Netlify Function) ─────────────────────────
 const API = "/api/db";
@@ -186,7 +186,7 @@ export default function App() {
       try {
         const data = await loadAll();
         const matchValues = Object.values(data.matches || {});
-        setMatches(matchValues.length > 0 ? matchValues : [...WC2026_MATCHES, ...PHASE_FINALE_MATCHES]);
+        setMatches(matchValues.length > 0 ? matchValues : WC2026_MATCHES);
         setBets(data.bets || {});
         setUsers(data.users || {});
         if (data.config?.wc26_admin_pw) setAdminPw(data.config.wc26_admin_pw);
@@ -196,7 +196,7 @@ export default function App() {
         if (data.config?.wc26_conv_rate) setConvRate(parseInt(data.config.wc26_conv_rate) || 10);
       } catch(e) {
         console.error("Erreur chargement:", e);
-        setMatches([...WC2026_MATCHES, ...PHASE_FINALE_MATCHES]);
+        setMatches(WC2026_MATCHES);
       }
       setLoaded(true);
     })();
@@ -232,11 +232,9 @@ export default function App() {
       {toast && <Toast msg={toast.msg} type={toast.type} />}
       {view === "home"        && <HomeView setView={setView} currentUser={currentUser} setCurrentUser={setCurrentUser} users={users} persistUsers={persistUsers} adminPw={adminPw} setAdminMode={setAdminMode} showToast={showToast} />}
       {view === "bet"  && currentUser && <BetView matches={matches} bets={bets} currentUser={currentUser} users={users} persistBets={persistBets} showToast={showToast} />}
-      {view === "leaderboard" && <LeaderboardView matches={matches} bets={bets} users={users} bonus={bonus} redemptions={redemptions} currentUser={currentUser} />}
+      {view === "leaderboard" && <LeaderboardView matches={matches} bets={bets} users={users} bonus={bonus} redemptions={redemptions} />}
       {view === "mygroup"     && <MyGroupView currentUser={currentUser} users={users} groups={groups} persistGroups={persistGroups} bets={bets} matches={matches} bonus={bonus} showToast={showToast} />}
       {view === "solde" && currentUser && <SoldeView currentUser={currentUser} matches={matches} bets={bets} bonus={bonus} redemptions={redemptions} persistRedemptions={persistRedemptions} convRate={convRate} showToast={showToast} />}
-      {view === "regles" && <ReglesView setView={setView} />}
-      {view === "profil" && currentUser && <ProfilView currentUser={currentUser} users={users} persistUsers={persistUsers} showToast={showToast} setCurrentUser={setCurrentUser} />}
       {view === "admin" && adminMode  && <AdminView matches={matches} persistMatches={persistMatches} bets={bets} users={users} persistUsers={persistUsers} persistBets={persistBets} groups={groups} persistGroups={persistGroups} bonus={bonus} persistBonus={persistBonus} redemptions={redemptions} persistRedemptions={persistRedemptions} convRate={convRate} persistConvRate={persistConvRate} adminPw={adminPw} setAdminPw={async p => { setAdminPw(p); await save(KEYS.adminPw, p); }} showToast={showToast} />}
     </div>
   );
@@ -250,8 +248,6 @@ function Header({ view, setView, currentUser, setCurrentUser, adminMode, setAdmi
     { id:"leaderboard", label:"Classement" },
     { id:"mygroup",     label:"Mon Groupe" },
     { id:"solde",       label:"Mon Solde" },
-    { id:"regles",      label:"Règles" },
-    ...(currentUser ? [{ id:"profil", label:"Mon Profil" }] : []),
     ...(adminMode && !currentUser ? [{ id:"admin", label:"Admin" }] : []),
   ];
   return (
@@ -281,134 +277,10 @@ function Header({ view, setView, currentUser, setCurrentUser, adminMode, setAdmi
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-
-const PHASE_FINALE_MATCHES = [
-  { id:9101, home:"2e Groupe A", away:"2e Groupe B", date:"2026-06-28T21:00", group:"16e de finale", finished:false },
-  { id:9102, home:"1er Groupe C", away:"2e Groupe F", date:"2026-06-29T19:00", group:"16e de finale", finished:false },
-  { id:9103, home:"1er Groupe E", away:"3e (A/B/C/D/F)", date:"2026-06-29T22:30", group:"16e de finale", finished:false },
-  { id:9104, home:"1er Groupe F", away:"2e Groupe C", date:"2026-06-30T03:00", group:"16e de finale", finished:false },
-  { id:9105, home:"2e Groupe E", away:"2e Groupe I", date:"2026-06-30T19:00", group:"16e de finale", finished:false },
-  { id:9106, home:"1er Groupe I", away:"3e (C/D/F/G/H)", date:"2026-06-30T23:00", group:"16e de finale", finished:false },
-  { id:9107, home:"1er Groupe A", away:"3e (C/E/F/H/I)", date:"2026-07-01T03:00", group:"16e de finale", finished:false },
-  { id:9108, home:"1er Groupe L", away:"3e (E/H/I/J/K)", date:"2026-07-01T18:00", group:"16e de finale", finished:false },
-  { id:9109, home:"1er Groupe G", away:"3e (A/E/H/I/J)", date:"2026-07-01T22:00", group:"16e de finale", finished:false },
-  { id:9110, home:"1er Groupe D", away:"3e (B/E/F/I/J)", date:"2026-07-02T02:00", group:"16e de finale", finished:false },
-  { id:9111, home:"1er Groupe H", away:"2e Groupe J", date:"2026-07-02T21:00", group:"16e de finale", finished:false },
-  { id:9112, home:"2e Groupe K", away:"2e Groupe L", date:"2026-07-03T01:00", group:"16e de finale", finished:false },
-  { id:9113, home:"1er Groupe B", away:"3e (E/F/G/I/J)", date:"2026-07-03T05:00", group:"16e de finale", finished:false },
-  { id:9114, home:"2e Groupe D", away:"2e Groupe G", date:"2026-07-03T20:00", group:"16e de finale", finished:false },
-  { id:9115, home:"1er Groupe J", away:"2e Groupe H", date:"2026-07-04T00:00", group:"16e de finale", finished:false },
-  { id:9116, home:"1er Groupe K", away:"3e (D/E/I/J/L)", date:"2026-07-04T03:30", group:"16e de finale", finished:false },
-  { id:9201, home:"Vainqueur 16e-1", away:"Vainqueur 16e-2", date:"2026-07-05T21:00", group:"8e de finale", finished:false },
-  { id:9202, home:"Vainqueur 16e-3", away:"Vainqueur 16e-4", date:"2026-07-05T01:00", group:"8e de finale", finished:false },
-  { id:9203, home:"Vainqueur 16e-5", away:"Vainqueur 16e-6", date:"2026-07-06T21:00", group:"8e de finale", finished:false },
-  { id:9204, home:"Vainqueur 16e-7", away:"Vainqueur 16e-8", date:"2026-07-06T01:00", group:"8e de finale", finished:false },
-  { id:9205, home:"Vainqueur 16e-9", away:"Vainqueur 16e-10", date:"2026-07-07T21:00", group:"8e de finale", finished:false },
-  { id:9206, home:"Vainqueur 16e-11", away:"Vainqueur 16e-12", date:"2026-07-07T01:00", group:"8e de finale", finished:false },
-  { id:9207, home:"Vainqueur 16e-13", away:"Vainqueur 16e-14", date:"2026-07-08T21:00", group:"8e de finale", finished:false },
-  { id:9208, home:"Vainqueur 16e-15", away:"Vainqueur 16e-16", date:"2026-07-08T01:00", group:"8e de finale", finished:false },
-  { id:9301, home:"Vainqueur 8e-1", away:"Vainqueur 8e-2", date:"2026-07-09T21:00", group:"Quart de finale", finished:false },
-  { id:9302, home:"Vainqueur 8e-3", away:"Vainqueur 8e-4", date:"2026-07-10T21:00", group:"Quart de finale", finished:false },
-  { id:9303, home:"Vainqueur 8e-5", away:"Vainqueur 8e-6", date:"2026-07-11T01:00", group:"Quart de finale", finished:false },
-  { id:9304, home:"Vainqueur 8e-7", away:"Vainqueur 8e-8", date:"2026-07-11T21:00", group:"Quart de finale", finished:false },
-  { id:9401, home:"Vainqueur QF-1", away:"Vainqueur QF-2", date:"2026-07-14T21:00", group:"Demi-finale", finished:false },
-  { id:9402, home:"Vainqueur QF-3", away:"Vainqueur QF-4", date:"2026-07-15T21:00", group:"Demi-finale", finished:false },
-  { id:9501, home:"Perdant DF-1", away:"Perdant DF-2", date:"2026-07-18T21:00", group:"3e place", finished:false },
-  { id:9601, home:"Vainqueur DF-1", away:"Vainqueur DF-2", date:"2026-07-19T21:00", group:"Finale", finished:false },
-];
-
-// ─── PROFIL VIEW ──────────────────────────────────────────────────────────────
-function ProfilView({ currentUser, users, persistUsers, showToast, setCurrentUser }) {
-  const [oldPw,  setOldPw]  = useState("");
-  const [newPw,  setNewPw]  = useState("");
-  const [newPw2, setNewPw2] = useState("");
-
-  const changePw = async () => {
-    if (!oldPw||!newPw||!newPw2) return showToast("Remplis tous les champs","err");
-    if (users[currentUser.id]?.password !== oldPw) return showToast("Mot de passe actuel incorrect","err");
-    if (newPw.length < 4) return showToast("Minimum 4 caractères","err");
-    if (newPw !== newPw2) return showToast("Les mots de passe ne correspondent pas","err");
-    const nu = {...users,[currentUser.id]:{...users[currentUser.id],password:newPw}};
-    await persistUsers(nu);
-    setOldPw(""); setNewPw(""); setNewPw2("");
-    showToast("Mot de passe modifié ✓");
-  };
-
-  return (
-    <div style={S.page}>
-      <div style={{maxWidth:480,margin:"0 auto",padding:"0 16px 40px"}}>
-        <h2 style={{...S.pageTitle,textAlign:"center"}}>👤 Mon Profil</h2>
-        <div style={S.card}>
-          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-            <div style={{...S.avatar,background:currentUser.color,width:56,height:56,fontSize:24}}>{currentUser.name[0].toUpperCase()}</div>
-            <div>
-              <div style={{fontFamily:"'Lexend',sans-serif",fontWeight:700,fontSize:18}}>{currentUser.name}</div>
-              <div style={{fontSize:12,color:"#888"}}>Participant au Concours Breton</div>
-            </div>
-          </div>
-        </div>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>🔑 Changer mon mot de passe</h3>
-          <input style={S.input} type="password" placeholder="Mot de passe actuel" value={oldPw} onChange={e=>setOldPw(e.target.value)}/>
-          <input style={S.input} type="password" placeholder="Nouveau mot de passe (min. 4 car.)" value={newPw} onChange={e=>setNewPw(e.target.value)}/>
-          <input style={S.input} type="password" placeholder="Confirmer le nouveau mot de passe" value={newPw2} onChange={e=>setNewPw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&changePw()}/>
-          <button style={S.btnPrimary} onClick={changePw}>Mettre à jour</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── RÈGLES VIEW ──────────────────────────────────────────────────────────────
-function ReglesView({ setView }) {
-  return (
-    <div style={S.page}>
-      <div style={{maxWidth:600,margin:"0 auto",padding:"0 16px 40px"}}>
-        <h2 style={{...S.pageTitle,textAlign:"center"}}>📋 Règles du Concours</h2>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>⚽ Principe du jeu</h3>
-          <p style={{fontSize:14,color:"#444",lineHeight:1.7,margin:0}}>Pronostique le score exact de chaque match. Tes paris sont <strong>secrets jusqu'au coup d'envoi</strong> — personne ne peut les voir avant le début du match.</p>
-        </div>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>🎯 Barème des points</h3>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderRadius:10,background:"rgba(100,116,139,0.06)"}}>
-              <span style={{fontSize:28,fontWeight:800,color:"#94a3b8",minWidth:40,textAlign:"center"}}>0</span>
-              <div><p style={{margin:0,fontWeight:700,fontSize:14}}>Score faux</p><p style={{margin:0,fontSize:12,color:"#888"}}>Mauvais vainqueur ou mauvais score</p></div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderRadius:10,background:"rgba(18,50,132,0.06)"}}>
-              <span style={{fontSize:28,fontWeight:800,color:C.bleu,minWidth:40,textAlign:"center"}}>1</span>
-              <div><p style={{margin:0,fontWeight:700,fontSize:14}}>Bon vainqueur</p><p style={{margin:0,fontSize:12,color:"#888"}}>Tu as trouvé qui gagne mais pas le score exact</p></div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderRadius:10,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.3)"}}>
-              <span style={{fontSize:28,fontWeight:800,color:"#f59e0b",minWidth:40,textAlign:"center"}}>4</span>
-              <div><p style={{margin:0,fontWeight:700,fontSize:14}}>⭐ Score exact !</p><p style={{margin:0,fontSize:12,color:"#888"}}>Tu as trouvé le score exact — le jackpot !</p></div>
-            </div>
-          </div>
-        </div>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>👥 Groupes privés</h3>
-          <p style={{fontSize:14,color:"#444",lineHeight:1.7,margin:0}}>Crée un groupe privé et invite tes amis avec un <strong>code d'invitation</strong>. Tu peux voir le classement de ton groupe séparément du classement général.</p>
-        </div>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>⭐ Points bonus</h3>
-          <p style={{fontSize:14,color:"#444",lineHeight:1.7,margin:0}}>Des points bonus peuvent être attribués par l'équipe du Comptoir Breton (ex : premiers inscrits, défis spéciaux…).</p>
-        </div>
-        <div style={S.card}>
-          <h3 style={S.cardTitle}>🏆 Récompenses</h3>
-          <p style={{fontSize:14,color:"#444",lineHeight:1.7,margin:"0 0 10px"}}><strong>Les 5 premiers du classement général</strong> seront récompensés au nom de la gourmandise.</p>
-          <p style={{fontSize:14,color:"#444",lineHeight:1.7,margin:0}}><strong>Tout le monde peut gagner</strong> — transforme tes points en réductions : <strong>10 points = 1€</strong> (max 100 points). Demande depuis l'onglet <strong>Mon Solde</strong>.</p>
-        </div>
-        <button style={{...S.btnPrimary,width:"100%",marginTop:8}} onClick={()=>setView("bet")}>⚽ Commencer à parier</button>
-      </div>
-    </div>
-  );
-}
-
 // ─── COUNTDOWN BANNER ────────────────────────────────────────────────────────
 function CountdownBanner() {
-  const [timeLeft, setTimeLeft] = React.useState(null);
-  React.useEffect(() => {
+  const [timeLeft, setTimeLeft] = useState(null);
+  useEffect(() => {
     const target = new Date("2026-06-11T21:00:00+02:00");
     const calc = () => {
       const diff = target - new Date();
@@ -446,30 +318,25 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
   const [userPw,    setUserPw]    = useState("");
   const [userPw2,   setUserPw2]   = useState("");
   const [adminInput,setAdminInput]= useState("");
-  const [loading,   setLoading]   = useState(false);
   const COLORS = ["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#6366f1","#ec4899","#14b8a6","#8b5cf6","#f43f5e"];
 
   const resetForm = () => { setName(""); setUserPw(""); setUserPw2(""); setAdminInput(""); };
 
   const handleRegister = async () => {
-    if (loading) return;
     if (!name.trim())           return showToast("Entre ton prénom !", "err");
     if (!userPw.trim())         return showToast("Choisis un mot de passe !", "err");
     if (userPw !== userPw2)     return showToast("Les mots de passe ne correspondent pas !", "err");
     if (userPw.length < 4)      return showToast("Mot de passe trop court (4 caractères min) !", "err");
     if (Object.values(users).find(u => u.name.toLowerCase() === name.toLowerCase()))
       return showToast("Ce nom est déjà pris !", "err");
-    setLoading(true);
-    try {
-      const id = name.toLowerCase().replace(/[^a-z0-9]/g,"_") + "_" + Date.now();
-      const color = COLORS[Object.keys(users).length % COLORS.length];
-      const nu = { ...users, [id]: { name: name.trim(), color, password: userPw } };
-      await persistUsers(nu);
-      setCurrentUser({ id, name: nu[id].name, color: nu[id].color });
-      setAdminMode(false);
-      showToast(`Bienvenue ${name.trim()} ! 🎉`);
-      setView("bet");
-    } finally { setLoading(false); }
+    const id = name.toLowerCase().replace(/\s+/g,"_") + "_" + Date.now();
+    const color = COLORS[Object.keys(users).length % COLORS.length];
+    const nu = { ...users, [id]: { name: name.trim(), color, password: userPw } };
+    await persistUsers(nu);
+    setCurrentUser({ id, name: nu[id].name, color: nu[id].color });
+    setAdminMode(false);
+    showToast(`Bienvenue ${name.trim()} ! 🎉`);
+    setView("bet");
   };
 
   const handleLogin = () => {
@@ -508,24 +375,24 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
         <img src="/logo.png" alt="Le Comptoir Breton" style={{width:150,height:150,objectFit:"contain",margin:"0 auto 16px",display:"block"}} />
         <h1 style={S.heroTitle}>Le Concours Breton</h1>
         <p style={S.heroDesc}>Les 5 premiers du classement général seront récompensés au nom de la gourmandise.<br />Soyez perspicace. Bon courage à tous.</p>
-
+        <div style={S.ruleCards}>
+          <div style={S.ruleCard}><span style={S.rulePts}>0 pt</span><span style={{fontSize:12,color:"#64748b"}}>Score faux</span></div>
+          <div style={S.ruleCard}><span style={S.rulePts}>1 pt</span><span style={{fontSize:12,color:"#64748b"}}>Bon vainqueur</span></div>
+          <div style={{...S.ruleCard, border:"1px solid rgba(245,158,11,0.4)", background:"rgba(245,158,11,0.08)"}}><span style={{...S.rulePts,color:"#f59e0b"}}>4 pts</span><span style={{fontSize:12,color:"#f59e0b"}}>Score exact ⭐</span></div>
+        </div>
         {!mode && (
           <div style={S.heroButtons}>
             <button style={S.btnPrimary} onClick={() => { resetForm(); setMode("register"); }}>🆕 S'inscrire</button>
             <button style={S.btnSecondary} onClick={() => { resetForm(); setMode("login"); }}>🔑 Se connecter</button>
+            <button style={S.btnGhost} onClick={() => { resetForm(); setMode("admin"); }}>⚙️ Admin</button>
           </div>
         )}
 
         <div style={S.statsRow}>
-          <div style={{...S.statBox,cursor:"pointer"}} onClick={()=>setView("bet")}><span style={{fontSize:28}}>⚽</span><span style={S.statLabel}>Mes Paris</span></div>
-          <div style={{...S.statBox,cursor:"pointer"}} onClick={()=>setView("leaderboard")}><span style={{fontSize:28}}>🏆</span><span style={S.statLabel}>Mon Classement</span></div>
-          <div style={{...S.statBox,cursor:"pointer"}} onClick={()=>setView("solde")}><span style={{fontSize:28}}>⭐</span><span style={S.statLabel}>Mes Bonus</span></div>
+          <div style={S.statBox}><span style={{fontSize:28}}>🏆</span><span style={S.statLabel}>5 premiers récompensés</span></div>
+          <div style={S.statBox}><span style={{fontSize:28}}>🥞</span><span style={S.statLabel}>Transformez vos points en gourmandise</span></div>
+          <div style={S.statBox}><span style={{fontSize:28}}>🎉</span><span style={S.statLabel}>Gagnez votre repas</span></div>
         </div>
-        <p style={{textAlign:"center",fontSize:13,margin:"8px 0 0",color:C.bleu}}>
-          <span style={{cursor:"pointer",textDecoration:"underline",fontWeight:600}} onClick={()=>setView("solde")}>✨ Obtiens des points bonus</span>
-          {" "}et transforme-les en gourmandises !
-        </p>
-        {!mode && <p style={{textAlign:"center",margin:"8px 0 0"}}><button style={{...S.btnGhost,fontSize:11,padding:"4px 12px",color:"#aaa",borderColor:"#ddd"}} onClick={()=>{resetForm();setMode("admin");}}>⚙️ Admin</button></p>}
         {mode === "register" && (
           <div style={S.card}>
             <h3 style={S.cardTitle}>🆕 Créer un compte</h3>
@@ -533,7 +400,7 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
             <input style={S.input} type="password" placeholder="Mot de passe (min. 4 caractères)" value={userPw} onChange={e=>setUserPw(e.target.value)} />
             <input style={S.input} type="password" placeholder="Confirmer le mot de passe" value={userPw2} onChange={e=>setUserPw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()} />
             <p style={{fontSize:12,color:"#64748b",margin:0}}>🔒 Ton mot de passe protège l'accès à tes paris.</p>
-            <button style={{...S.btnPrimary,opacity:loading?0.7:1,cursor:loading?"not-allowed":"pointer"}} onClick={handleRegister} disabled={loading}>{loading?"⏳ Inscription en cours…":"Rejoindre le concours 🚀"}</button>
+            <button style={S.btnPrimary} onClick={handleRegister}>Rejoindre le concours 🚀</button>
             <button style={S.btnLink} onClick={() => setMode(null)}>Annuler</button>
           </div>
         )}
@@ -712,24 +579,6 @@ function BetView({ matches, bets, currentUser, persistBets, users, showToast }) 
           </div>
           <ShareButton currentUser={currentUser} bets={bets} matches={matches} users={users} />
         </div>
-        {(() => {
-          const finishedM = matches.filter(m=>m.finished);
-          const myPts = finishedM.reduce((acc,m)=>{ const b=(bets[currentUser.id]||{})[String(m.id)]; return acc+(b?calcPoints(b,m):0); },0);
-          const myExact = finishedM.filter(m=>{ const b=(bets[currentUser.id]||{})[String(m.id)]; return b&&calcPoints(b,m)===4; }).length;
-          if (finishedM.length===0) return null;
-          return (
-            <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
-              <div style={{background:C.bleu,borderRadius:10,padding:"8px 18px",display:"flex",gap:8,alignItems:"center"}}>
-                <span style={{fontSize:22,fontWeight:800,color:"#fff",fontFamily:"'Lexend',sans-serif"}}>{myPts}</span>
-                <span style={{fontSize:11,color:"rgba(255,255,255,0.75)",textTransform:"uppercase",letterSpacing:1}}>pts gagnés</span>
-              </div>
-              <div style={{background:"rgba(18,50,132,0.06)",borderRadius:10,padding:"8px 18px",display:"flex",gap:8,alignItems:"center"}}>
-                <span style={{fontSize:22,fontWeight:800,color:C.bleu,fontFamily:"'Lexend',sans-serif"}}>{myExact}</span>
-                <span style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1}}>⭐ scores exacts</span>
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       <div style={S.filterBar}>
@@ -912,7 +761,7 @@ function BetView({ matches, bets, currentUser, persistBets, users, showToast }) 
 }
 
 // ─── LEADERBOARD ──────────────────────────────────────────────────────────────
-function LeaderboardView({ matches, bets, users, bonus, redemptions, currentUser }) {
+function LeaderboardView({ matches, bets, users, bonus, redemptions }) {
   const now = new Date();
   // Un match est "révélé" si son heure est passée OU s'il est déjà terminé (finished:true)
   const kickedOff = matches.filter(m => new Date(m.date) <= now || m.finished);
@@ -938,42 +787,16 @@ function LeaderboardView({ matches, bets, users, bonus, redemptions, currentUser
 
   const medals = ["🥇","🥈","🥉"];
   const podiumStyle = [S.leaderFirst, {}, {}];
-  const myRef = React.useRef(null);
-  React.useEffect(() => { if (myRef.current) setTimeout(() => myRef.current.scrollIntoView({ behavior:"smooth", block:"center" }), 200); }, []);
-
-  const exportCSV = () => {
-    const rows = [["Rang","Nom","Points","Exacts","Vainqueurs","Bonus","Échangés"]];
-    scores.forEach((p,i) => rows.push([i+1,p.name,p.total,p.exact,p.correct,p.bonusPts,p.spentPts]));
-    const csv = rows.map(r=>r.join(";")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-    a.download = "classement-concours-breton.csv"; a.click();
-  };
-
-  const printLeaderboard = () => {
-    const w = window.open("","_blank");
-    const rows = scores.map((p,i)=>`<tr style="background:${i%2===0?"#f8f9fa":"#fff"}${currentUser&&p.uid===currentUser.id?";font-weight:bold;background:#e8eeff":""}"><td style="padding:8px 12px;text-align:center">${["🥇","🥈","🥉"][i]||i+1}</td><td style="padding:8px 12px">${p.name}${currentUser&&p.uid===currentUser.id?" ◀":""}</td><td style="padding:8px 12px;text-align:center;font-weight:bold;color:#123284">${p.total}</td><td style="padding:8px 12px;text-align:center">⭐${p.exact}</td><td style="padding:8px 12px;text-align:center">✓${p.correct}</td><td style="padding:8px 12px;text-align:center">${p.bonusPts>0?"+"+p.bonusPts:"—"}</td></tr>`).join("");
-    w.document.write(`<!DOCTYPE html><html><head><title>Classement Concours Breton</title><style>body{font-family:Arial,sans-serif;padding:32px}h1{color:#123284}table{width:100%;border-collapse:collapse;font-size:14px}th{background:#123284;color:#fff;padding:10px 12px;text-align:left}@media print{button{display:none}}</style></head><body><h1>🏆 Le Concours Breton — Classement</h1><p>${finished.length} match${finished.length>1?"s":""} · ${scores.length} participant${scores.length>1?"s":""} · ${new Date().toLocaleDateString("fr-FR")}</p><button onclick="window.print()" style="background:#123284;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;margin-bottom:16px">🖨️ Imprimer</button><table><thead><tr><th>Rang</th><th>Participant</th><th>Points</th><th>Exacts</th><th>Vainqueurs</th><th>Bonus</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
-    w.document.close();
-  };
 
   return (
     <div style={S.page}>
       <div style={S.pageHeader}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-          <div>
-            <h2 style={S.pageTitle}>Classement Général</h2>
-            <p style={S.pageSub}>
-              {finished.length} match{finished.length>1?"s":""} comptabilisé{finished.length>1?"s":""}
-              {awaitingResult.length > 0 && ` · ${awaitingResult.length} en attente de résultat`}
-              {" · "}{Object.keys(users).length} participant{Object.keys(users).length>1?"s":""}
-            </p>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button style={{...S.btnGhost,fontSize:12,padding:"6px 12px"}} onClick={exportCSV}>⬇️ CSV</button>
-            <button style={{...S.btnGhost,fontSize:12,padding:"6px 12px"}} onClick={printLeaderboard}>🖨️ Imprimer</button>
-          </div>
-        </div>
+        <h2 style={S.pageTitle}>Classement Général</h2>
+        <p style={S.pageSub}>
+          {finished.length} match{finished.length>1?"s":""} comptabilisé{finished.length>1?"s":""}
+          {awaitingResult.length > 0 && ` · ${awaitingResult.length} en attente de résultat`}
+          {" · "}{Object.keys(users).length} participant{Object.keys(users).length>1?"s":""}
+        </p>
       </div>
 
       {awaitingResult.length > 0 && (
@@ -992,20 +815,17 @@ function LeaderboardView({ matches, bets, users, bonus, redemptions, currentUser
         <div style={S.emptyState}><div style={S.emptyIcon}>🏆</div><p>Le classement s'affichera une fois les matchs terminés.</p></div>
       ) : (
         <div style={S.leaderboard}>
-          {scores.map((p,i) => {
-            const isMe = currentUser && p.uid === currentUser.id;
-            return (
-              <div key={p.uid} ref={isMe?myRef:null} style={{...(i<3?{...S.leaderRow,...(podiumStyle[i]||{})}:S.leaderRow),...(isMe?{border:"2px solid #123284",background:"rgba(18,50,132,0.08)",boxShadow:"0 0 0 3px rgba(18,50,132,0.15)",borderRadius:12}:{})}}>
-                <span style={S.rank}>{medals[i]||`${i+1}`}</span>
-                <div style={{...S.avatar,background:p.color}}>{p.name[0].toUpperCase()}</div>
-                <div style={S.leaderInfo}>
-                  <div style={S.leaderName}>{p.name}{isMe&&<span style={{fontSize:11,background:"#123284",color:"#fff",borderRadius:8,padding:"1px 6px",marginLeft:6}}>Moi</span>}{i===0&&<span style={S.crownBadge}> 👑 Leader</span>}</div>
-                  <div style={S.leaderStats}>{p.exact} exact · {p.correct} vainqueur{p.bonusPts>0&&<span style={{color:"#7a5200",fontWeight:700}}> · +{p.bonusPts} bonus</span>}{p.spentPts>0&&<span style={{color:"#c0392b"}}> · -{p.spentPts} échangés</span>}</div>
-                </div>
-                <div style={S.leaderScore}>{p.total}<span style={S.leaderPtsLabel}>pts</span></div>
+          {scores.map((p,i) => (
+            <div key={p.uid} style={i<3 ? {...S.leaderRow,...(podiumStyle[i]||{})} : S.leaderRow}>
+              <span style={S.rank}>{medals[i]||`${i+1}`}</span>
+              <div style={{...S.avatar,background:p.color}}>{p.name[0].toUpperCase()}</div>
+              <div style={S.leaderInfo}>
+                <div style={S.leaderName}>{p.name}{i===0 && <span style={S.crownBadge}> 👑 Leader</span>}</div>
+                <div style={S.leaderStats}>{p.exact} exact · {p.correct} vainqueur{p.bonusPts>0&&<span style={{color:"#7a5200",fontWeight:700}}> · +{p.bonusPts} bonus</span>}{p.spentPts>0&&<span style={{color:"#c0392b"}}> · -{p.spentPts} échangés</span>}</div>
               </div>
-            );
-          })}
+              <div style={S.leaderScore}>{p.total}<span style={S.leaderPtsLabel}>pts</span></div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1683,29 +1503,39 @@ function AdminView({ matches, persistMatches, bets, users, persistUsers, persist
                   <div style={{display:"flex",gap:8}}>
                     <button style={S.btnDanger} onClick={async () => {
               setConfirmTest(false);
-              const COLORS = ["#123284","#c0392b","#1e7d4f"];
+              const COLORS = ["#123284","#c0392b","#1e7d4f","#8a5e00","#6b35a0"];
               const testUsers = {
-                "test_thomas": { name:"Thomas", color:COLORS[0], password:"test123" },
-                "test_marie":  { name:"Marie",  color:COLORS[1], password:"test123" },
-                "test_leo":    { name:"Léo",    color:COLORS[2], password:"test123" },
+                "test_alice":   { name:"Alice",   color:COLORS[0], password:"test123" },
+                "test_benoit":  { name:"Benoît",  color:COLORS[1], password:"test123" },
+                "test_camille": { name:"Camille", color:COLORS[2], password:"test123" },
+                "test_david":   { name:"David",   color:COLORS[3], password:"test123" },
+                "test_emma":    { name:"Emma",    color:COLORS[4], password:"test123" },
+                "test_lucas":   { name:"Lucas",   color:"#e67e22", password:"test123" },
               };
 
-              // 5 matchs : 2 terminés + 1 KO passé sans résultat + 2 à venir
-              const now = new Date();
-              const d = (h) => new Date(now.getTime() + h*3600000).toISOString().slice(0,16);
-
+              // 10 matchs fictifs, tous terminés (date passée)
               const testMatches = [
-                { id:9001, home:"🇫🇷 France",  away:"🇩🇪 Allemagne", date:d(-48), group:"Groupe Test", homeScore:2, awayScore:1, finished:true },
-                { id:9002, home:"🇧🇷 Brésil",  away:"🇦🇷 Argentine", date:d(-24), group:"Groupe Test", homeScore:1, awayScore:1, finished:true },
-                { id:9003, home:"🇪🇸 Espagne", away:"🇵🇹 Portugal",  date:d(-2),  group:"Groupe Test", homeScore:null, awayScore:null, finished:false },
-                { id:9004, home:"🇮🇹 Italie",  away:"🇧🇪 Belgique",  date:d(2),   group:"Groupe Test", homeScore:null, awayScore:null, finished:false },
-                { id:9005, home:"🇯🇵 Japon",   away:"🇲🇦 Maroc",     date:d(26),  group:"Groupe Test", homeScore:null, awayScore:null, finished:false },
+                { id:9001, home:"🇫🇷 France",    away:"🇩🇪 Allemagne",  date:"2026-06-11T20:00", group:"Groupe Test", homeScore:2, awayScore:1, finished:true },
+                { id:9002, home:"🇧🇷 Brésil",    away:"🇦🇷 Argentine", date:"2026-06-11T22:00", group:"Groupe Test", homeScore:1, awayScore:1, finished:true },
+                { id:9003, home:"🇪🇸 Espagne",   away:"🇵🇹 Portugal",  date:"2026-06-12T18:00", group:"Groupe Test", homeScore:3, awayScore:0, finished:true },
+                { id:9004, home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", away:"🇳🇱 Pays-Bas", date:"2026-06-12T20:00", group:"Groupe Test", homeScore:1, awayScore:2, finished:true },
+                { id:9005, home:"🇮🇹 Italie",    away:"🇧🇪 Belgique",  date:"2026-06-13T18:00", group:"Groupe Test", homeScore:0, awayScore:0, finished:true },
+                { id:9006, home:"🇺🇸 États-Unis", away:"🇲🇽 Mexique",  date:"2026-06-13T20:00", group:"Groupe Test", homeScore:2, awayScore:3, finished:true },
+                { id:9007, home:"🇯🇵 Japon",     away:"🇰🇷 Corée du Sud", date:"2026-06-14T12:00", group:"Groupe Test", homeScore:1, awayScore:0, finished:true },
+                { id:9008, home:"🇲🇦 Maroc",     away:"🇸🇳 Sénégal",  date:"2026-06-14T15:00", group:"Groupe Test", homeScore:2, awayScore:2, finished:true },
+                { id:9009, home:"🇨🇭 Suisse",    away:"🇩🇰 Danemark", date:"2026-06-14T18:00", group:"Groupe Test", homeScore:1, awayScore:3, finished:true },
+                { id:9010, home:"🇦🇺 Australie", away:"🇨🇦 Canada",   date:"2026-06-14T21:00", group:"Groupe Test", homeScore:0, awayScore:1, finished:true },
               ];
 
+              // Paris de chaque participant (variés pour illustrer tous les cas)
+              // Format: [homeScore, awayScore]
               const paris = {
-                "test_thomas": [[2,1],[1,1],[2,0],[1,0],[0,1]],
-                "test_marie":  [[1,0],[0,0],[1,1],[2,1],[1,0]],
-                "test_leo":    [[2,0],[1,1],[3,0],[0,0],[2,2]],
+                "test_alice":   [[2,1],[1,1],[3,0],[2,1],[0,0],[2,3],[1,0],[2,2],[1,3],[0,1]], // très bon
+                "test_benoit":  [[1,0],[0,0],[2,1],[1,2],[1,0],[1,2],[1,0],[1,1],[0,2],[1,0]], // moyen
+                "test_camille": [[2,0],[1,1],[2,0],[0,2],[0,0],[2,3],[0,1],[2,2],[2,3],[0,1]], // bon
+                "test_david":   [[0,0],[2,0],[1,1],[1,1],[1,1],[3,1],[0,0],[1,0],[2,1],[1,1]], // faible
+                "test_emma":    [[2,1],[0,2],[3,0],[1,2],[1,0],[1,3],[1,0],[0,0],[0,3],[0,1]], // bon
+                "test_lucas":   [[1,0],[1,1],[2,1],[1,2],[0,1],[2,3],[1,0],[1,1],[1,2],[0,1]], // passable
               };
 
               const testBets = {};
@@ -1716,7 +1546,8 @@ function AdminView({ matches, persistMatches, bets, users, persistUsers, persist
                 });
               });
 
-              const testBonus = { "test_thomas": { "b1": { pts:5, label:"Premier inscrit !", date:new Date().toLocaleDateString("fr-FR") } } };
+              // Bonus pour Alice
+              const testBonus = { "test_alice": { "b1": { pts:10, label:"25 premiers inscrits", date:"11/06/2026" } } };
 
               // Effacer d'abord toutes les clés existantes pour éviter les résidus
               try { await window.storage.delete(KEYS.matches, true); } catch {}
@@ -1750,7 +1581,7 @@ function AdminView({ matches, persistMatches, bets, users, persistUsers, persist
                       await persistUsers(nu);
                       await persistBets(nb);
                       await persistBonus(nbo);
-                      await persistMatches([...WC2026_MATCHES, ...PHASE_FINALE_MATCHES]);
+                      await persistMatches(WC2026_MATCHES);
                       showToast("Données de test supprimées ✓");
                     }}>Oui, supprimer</button>
                     <button style={S.btnGhost} onClick={()=>setConfirmReset(false)}>Annuler</button>
