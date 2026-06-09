@@ -373,7 +373,7 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
     <div style={S.page}>
       <div style={S.hero}>
         <img src="/logo.png" alt="Le Comptoir Breton" style={{width:150,height:150,objectFit:"contain",margin:"0 auto 16px",display:"block"}} />
-        <h1 style={S.heroTitle}>Le Concours du Comptoir</h1>
+        <h1 style={S.heroTitle}>Le Concours du Comptoir 2026</h1>
         <p style={S.heroDesc}>Les 5 premiers du classement général seront récompensés au nom de la gourmandise.<br />Soyez perspicace. Bon courage à tous.</p>
         <div style={S.ruleCards}>
           <div style={S.ruleCard}><span style={S.rulePts}>0 pt</span><span style={{fontSize:12,color:"#64748b"}}>Score faux</span></div>
@@ -484,7 +484,7 @@ function ShareButton({ currentUser, bets, matches, users }) {
     }).sort((a,b) => b.total - a.total);
     const rank = scores.findIndex(s => s.name === currentUser.name) + 1;
     const lines = [
-      "🏆 Le Concours du Comptoir — Coupe du Monde 2026",
+      "🏆 Le Concours du Comptoir 2026 — Coupe du Monde 2026",
       "",
       `👤 ${currentUser.name}`,
       `📊 ${total} pts · ${exact} score${exact>1?"s":""} exact${exact>1?"s":""}`,
@@ -502,7 +502,7 @@ function ShareButton({ currentUser, bets, matches, users }) {
     const text = buildText();
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Le Concours du Comptoir", text });
+        await navigator.share({ title: "Le Concours du Comptoir 2026", text });
       } else {
         await navigator.clipboard.writeText(text);
         setCopied(true);
