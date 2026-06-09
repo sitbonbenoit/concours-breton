@@ -373,7 +373,7 @@ function HomeView({ setView, currentUser, setCurrentUser, users, persistUsers, a
     <div style={S.page}>
       <div style={S.hero}>
         <img src="/logo.png" alt="Le Comptoir Breton" style={{width:150,height:150,objectFit:"contain",margin:"0 auto 16px",display:"block"}} />
-        <h1 style={S.heroTitle}>Le Concours du Comptoir</h1>
+        <h1 style={S.heroTitle}>Le Concours Breton</h1>
         <p style={S.heroDesc}>Les 5 premiers du classement général seront récompensés au nom de la gourmandise.<br />Soyez perspicace. Bon courage à tous.</p>
         <div style={S.ruleCards}>
           <div style={S.ruleCard}><span style={S.rulePts}>0 pt</span><span style={{fontSize:12,color:"#64748b"}}>Score faux</span></div>
@@ -949,7 +949,7 @@ function SoldeView({ currentUser, matches, bets, bonus, redemptions, persistRede
         </div>
       ) : (
         <div style={{...S.card,marginBottom:24,textAlign:"center",color:"#6b6b6b"}}>
-          <p style={{fontStyle:"italic"}}>Il te faut au moins <strong style={{color:C.bleu}}>{convRate} points</strong> pour faire une demande.<br />Tu en as actuellement <strong>{avail}</strong>.</p>
+          <p style={{fontStyle:"italic"}}>Il te faut au moins <strong style={{color:C.bleu}}>{convRate} points</strong> pour faire une demande.<br />Tu peux transformer maximum 100 points.<br />Tu en as actuellement <strong>{avail}</strong>.</p>
         </div>
       )}
 
