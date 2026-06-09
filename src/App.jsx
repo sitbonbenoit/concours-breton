@@ -871,10 +871,13 @@ function SoldeView({ currentUser, matches, bets, bonus, redemptions, persistRede
   const [reason, setReason] = useState("");
 
   const uid = currentUser.id;
-  const earned  = totalScore(uid, matches, bets, bonus);
-  const spent   = spentPoints(uid, redemptions);
-  const avail   = earned - spent;
-  const euros   = convRate > 0 ? (avail / convRate).toFixed(2) : 0;
+  const earned     = totalScore(uid, matches, bets, bonus);
+  const spent      = spentPoints(uid, redemptions);
+  const avail      = earned - spent;
+  const euros      = convRate > 0 ? (avail / convRate).toFixed(2) : 0;
+  const MAX_TOTAL  = 200;
+  const validatedPts = Object.values(redemptions[uid]||{}).filter(r=>r.status==="validated").reduce((a,r)=>a+r.pts,0);
+  const remainingAllowed = Math.max(0, MAX_TOTAL - validatedPts);
 
   const myRedemptions = Object.entries(redemptions[uid] || {}).sort((a,b) => b[1].createdAt - a[1].createdAt);
   const pendingCount  = myRedemptions.filter(([,r]) => r.status === "pending").length;
@@ -884,6 +887,8 @@ function SoldeView({ currentUser, matches, bets, bonus, redemptions, persistRede
     if (isNaN(p) || p <= 0) return showToast("Nombre de points invalide !", "err");
     if (p > avail) return showToast(`Tu n'as que ${avail} points disponibles !`, "err");
     if (p < convRate) return showToast(`Minimum ${convRate} points pour une demande !`, "err");
+    if (validatedPts >= MAX_TOTAL) return showToast(`Tu as déjà atteint la limite de ${MAX_TOTAL} points échangés !`, "err");
+    if (p > remainingAllowed) return showToast(`Il te reste ${remainingAllowed} pts échangeables (limite : ${MAX_TOTAL} pts validés au total) !`, "err");
     const euros = (p / convRate).toFixed(2);
     const id = "r_" + Date.now();
     const nr = { ...redemptions, [uid]: { ...(redemptions[uid]||{}), [id]: {
@@ -933,9 +938,14 @@ function SoldeView({ currentUser, matches, bets, bonus, redemptions, persistRede
       </div>
 
       {/* Formulaire de demande */}
-      {avail >= convRate ? (
+      {avail >= convRate && remainingAllowed > 0 ? (
         <div style={{...S.card,marginBottom:24}}>
           <h3 style={S.cardTitle}>Faire une demande d'échange</h3>
+          <div style={{fontSize:12,color:"#6b6b6b",marginBottom:8,padding:"6px 10px",background:"rgba(18,50,132,0.05)",borderRadius:4}}>
+            Limite : <strong style={{color:C.bleu}}>{validatedPts}/{MAX_TOTAL} pts</strong> validés au total
+            {remainingAllowed < 50 && remainingAllowed > 0 && <span style={{color:"#f59e0b",fontWeight:700}}> · Plus que {remainingAllowed} pts échangeables !</span>}
+            {remainingAllowed === 0 && <span style={{color:"#c0392b",fontWeight:700}}> · Limite atteinte !</span>}
+          </div>
           <input style={S.input} type="number" min={convRate} step={convRate}
             placeholder={`Nombre de points (min. ${convRate})`}
             value={pts} onChange={e=>setPts(e.target.value)} />
@@ -949,7 +959,7 @@ function SoldeView({ currentUser, matches, bets, bonus, redemptions, persistRede
         </div>
       ) : (
         <div style={{...S.card,marginBottom:24,textAlign:"center",color:"#6b6b6b"}}>
-          <p style={{fontStyle:"italic"}}>Il te faut au moins <strong style={{color:C.bleu}}>{convRate} points</strong> pour faire une demande.<br />Tu peux transformer maximum 100 points.<br />Tu en as actuellement <strong>{avail}</strong>.</p>
+          <p style={{fontStyle:"italic"}}>Il te faut au moins <strong style={{color:C.bleu}}>{convRate} points</strong> pour faire une demande.<br />Tu peux transformer jusqu'à <strong style={{color:C.bleu}}>{MAX_TOTAL} points validés</strong> au total.<br />Tu en as actuellement <strong>{avail}</strong> disponibles.</p>
         </div>
       )}
 
