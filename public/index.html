@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123284" />
+    <meta name="description" content="Le Concours Breton — Pronostics Coupe du Monde 2026" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Concours Breton" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <title>Le Concours Breton</title>
+    <style>body { margin: 0; background: #f4f2ed; }</style>
+  </head>
+  <body>
+    <noscript>Activez JavaScript pour utiliser cette application.</noscript>
+    <div id="root"></div>
+    <script>
+      // Désinstalle tout service worker précédemment installé
+      // et vide les caches, pour éviter les pages blanches après déploiement.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(reg => reg.unregister());
+        });
+        if (window.caches) {
+          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        }
+      }
+    </script>
+  </body>
+</html>
